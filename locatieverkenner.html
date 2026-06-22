@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Locatieverkenner</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #F7F6F3;
+    --surface: #FFFFFF;
+    --border: #E2E0DA;
+    --border-strong: #C8C6BF;
+    --text: #1A1917;
+    --text-muted: #6B6860;
+    --text-faint: #9C9A94;
+    --accent: #2D5BE3;
+    --accent-bg: #EEF2FD;
+    --accent-text: #1A3FA8;
+    --green: #1B6B3A;
+    --green-bg: #EAF4EE;
+    --amber: #7A4A00;
+    --amber-bg: #FEF3DC;
+    --radius: 10px;
+    --radius-sm: 6px;
+    --mono: 'DM Mono', monospace;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* ── Header ── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: -0.02em;
+  }
+  .logo-dot {
+    width: 8px; height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+  }
+  .header-label {
+    font-size: 12px;
+    color: var(--text-faint);
+    font-family: var(--mono);
+  }
+
+  /* ── Layout ── */
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 2rem 2rem 4rem;
+  }
+
+  /* ── Search ── */
+  .search-section { margin-bottom: 1.5rem; }
+  .search-row {
+    display: flex;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 6px;
+  }
+  .search-row:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(45,91,227,0.1);
+  }
+  #address-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    padding: 6px 10px;
+    background: transparent;
+    color: var(--text);
+  }
+  #address-input::placeholder { color: var(--text-faint); }
+  #search-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 8px 20px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.15s;
+    white-space: nowrap;
+  }
+  #search-btn:hover { background: #1A3FA8; }
+  #search-btn:disabled { background: var(--text-faint); cursor: not-allowed; }
+
+  /* ── API key notice ── */
+  .api-notice {
+    background: var(--amber-bg);
+    border: 1px solid #E8C87A;
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--amber);
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 1.5rem;
+  }
+  .api-notice strong { font-weight: 600; }
+  .api-notice input {
+    font-family: var(--mono);
+    font-size: 12px;
+    border: 1px solid #E8C87A;
+    border-radius: 4px;
+    padding: 4px 8px;
+    background: #fff;
+    color: var(--text);
+    width: 320px;
+    margin-top: 6px;
+    display: block;
+  }
+
+  /* ── Main grid ── */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 1rem;
+    align-items: start;
+  }
+  @media (max-width: 800px) {
+    .main-grid { grid-template-columns: 1fr; }
+  }
+
+  /* ── Map ── */
+  #map {
+    width: 100%;
+    height: 480px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    background: var(--surface);
+  }
+
+  .layer-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+  }
+  .layer-btn {
+    font-size: 12px;
+    font-family: 'Inter', sans-serif;
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .layer-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .layer-btn.active { background: var(--accent-bg); color: var(--accent-text); border-color: #9DB5F5; font-weight: 500; }
+
+  /* ── Sidebar cards ── */
+  .sidebar { display: flex; flex-direction: column; gap: 12px; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+  }
+  .card-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 12px;
+  }
+
+  .data-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+  }
+  .data-row:last-child { border-bottom: none; }
+  .data-label { font-size: 13px; color: var(--text-muted); flex-shrink: 0; }
+  .data-value { font-size: 13px; font-weight: 500; text-align: right; }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .stat {
+    background: var(--bg);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+  }
+  .stat-label { font-size: 11px; color: var(--text-faint); margin-bottom: 3px; }
+  .stat-value { font-size: 18px; font-weight: 600; letter-spacing: -0.02em; }
+
+  /* ── AI analysis ── */
+  .ai-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    margin-top: 1rem;
+  }
+  .ai-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .ai-badge {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: var(--accent-bg);
+    color: var(--accent-text);
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+  .ai-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+  }
+  .ai-text {
+    font-size: 14px;
+    line-height: 1.75;
+    color: var(--text);
+  }
+  .ai-text.loading { color: var(--text-faint); font-style: italic; }
+
+  /* ── Streetview button ── */
+  .streetview-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 9px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text-muted);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-top: 8px;
+    text-decoration: none;
+  }
+  .streetview-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+
+  /* ── Empty state ── */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 480px;
+    color: var(--text-faint);
+    gap: 10px;
+    text-align: center;
+  }
+  .empty-icon {
+    width: 48px; height: 48px;
+    border: 1.5px solid var(--border);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+  }
+
+  /* ── Tags ── */
+  .tag {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+  .tag-bp { background: var(--accent-bg); color: var(--accent-text); }
+  .tag-green { background: var(--green-bg); color: var(--green); }
+
+  /* ── Error ── */
+  .error-msg {
+    font-size: 13px;
+    color: #A32D2D;
+    background: #FCEBEB;
+    border: 1px solid #F09595;
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    margin-top: 8px;
+  }
+
+  /* ── Spinner ── */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid rgba(255,255,255,0.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+
+  /* ── Coords ── */
+  .coords {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-faint);
+    margin-top: 2px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-dot"></div>
+    Locatieverkenner
+  </div>
+  <span class="header-label">v1.0 — stedenbouwkundige analyse</span>
+</header>
+
+<div class="container">
+
+  <!-- API key notice -->
+  <div class="api-notice" id="api-notice">
+    <div>
+      <strong>Anthropic API-sleutel vereist voor AI-analyse.</strong>
+      Kaart en GIS-data werken zonder sleutel. Voer je sleutel in voor de AI-samenvatting:
+      <input type="password" id="api-key-input" placeholder="sk-ant-..." autocomplete="off" />
+    </div>
+  </div>
+
+  <!-- Search -->
+  <div class="search-section">
+    <div class="search-row">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;margin-left:8px;align-self:center;" aria-hidden="true">
+        <circle cx="6.5" cy="6.5" r="4" stroke="#9C9A94" stroke-width="1.5"/>
+        <path d="M11 11L14 14" stroke="#9C9A94" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <input type="text" id="address-input" placeholder="Voer een adres in — bijv. Weesperstraat 1, Amsterdam" autocomplete="off" />
+      <button id="search-btn" onclick="analyzeLocation()">
+        <span id="btn-label">Verken locatie</span>
+      </button>
+    </div>
+    <div id="error-msg" class="error-msg" style="display:none"></div>
+  </div>
+
+  <!-- Main grid -->
+  <div class="main-grid">
+
+    <!-- Left: map -->
+    <div>
+      <div id="map">
+        <div class="empty-state">
+          <div class="empty-icon">⊕</div>
+          <div>Voer een adres in om de kaart te laden</div>
+        </div>
+      </div>
+
+      <div class="layer-bar" id="layer-bar" style="display:none">
+        <span style="font-size:12px;color:var(--text-faint);align-self:center;margin-right:2px;">Lagen:</span>
+        <button class="layer-btn active" onclick="switchLayer('osm',this)">Basiskaart</button>
+        <button class="layer-btn" onclick="switchLayer('lufo',this)">Luchtfoto</button>
+        <button class="layer-btn" onclick="switchLayer('bp',this)">Bestemmingsplan</button>
+        <button class="layer-btn" onclick="switchLayer('bodem',this)">Bodemtype</button>
+        <button class="layer-btn" onclick="switchLayer('landgebruik',this)">Landgebruik</button>
+        <button class="layer-btn" onclick="switchLayer('grondwater',this)">Grondwater</button>
+      </div>
+
+      <!-- AI analysis (below map) -->
+      <div class="ai-card" id="ai-card" style="display:none">
+        <div class="ai-header">
+          <span class="ai-badge">AI analyse</span>
+          <span class="ai-title">Stedenbouwkundige context</span>
+        </div>
+        <div class="ai-text loading" id="ai-text">Analyse wordt gegenereerd...</div>
+      </div>
+
+      <a class="streetview-btn" id="sv-btn" href="#" target="_blank" style="display:none">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <circle cx="7" cy="5" r="2.5" stroke="currentColor" stroke-width="1.3"/>
+          <path d="M7 7.5C4.5 7.5 2.5 9 2.5 11h9C11.5 9 9.5 7.5 7 7.5Z" stroke="currentColor" stroke-width="1.3"/>
+        </svg>
+        Open in Google Street View
+      </a>
+    </div>
+
+    <!-- Right: sidebar -->
+    <div class="sidebar" id="sidebar" style="display:none">
+
+      <!-- Address card -->
+      <div class="card">
+        <div class="card-title">Adres</div>
+        <div id="res-display-address" style="font-size:14px;font-weight:500;line-height:1.4;margin-bottom:6px;"></div>
+        <div class="coords" id="res-coords"></div>
+      </div>
+
+      <!-- Location info -->
+      <div class="card">
+        <div class="card-title">Locatiegegevens</div>
+        <div class="data-row"><span class="data-label">Gemeente</span><span class="data-value" id="res-gemeente">—</span></div>
+        <div class="data-row"><span class="data-label">Provincie</span><span class="data-value" id="res-provincie">—</span></div>
+        <div class="data-row">
+          <span class="data-label">Bestemmingsplan</span>
+          <span class="data-value" id="res-bp">Ophalen...</span>
+        </div>
+        <div class="data-row"><span class="data-label">Bodem & water</span><span class="data-value" style="font-size:12px;color:var(--text-faint)">Zie kaartlagen</span></div>
+      </div>
+
+      <!-- CBS data -->
+      <div class="card">
+        <div class="card-title">CBS wijkdata</div>
+        <div class="stat-grid" id="cbs-grid">
+          <div class="stat"><div class="stat-label">Inwoners</div><div class="stat-value" id="cbs-inwoners">—</div></div>
+          <div class="stat"><div class="stat-label">Woningdichtheid</div><div class="stat-value" id="cbs-dichtheid">—</div></div>
+          <div class="stat"><div class="stat-label">Gem. inkomen</div><div class="stat-value" id="cbs-inkomen">—</div></div>
+          <div class="stat"><div class="stat-label">% koopwoning</div><div class="stat-value" id="cbs-koop">—</div></div>
+        </div>
+        <div style="font-size:11px;color:var(--text-faint);margin-top:10px;">
+          Bron: CBS Wijk- en Buurtkaart 2022 via PDOK
+        </div>
+      </div>
+
+      <!-- Sources -->
+      <div class="card">
+        <div class="card-title">Databronnen</div>
+        <div class="data-row"><span class="data-label">Kaart</span><span class="data-value"><span class="tag tag-green">OpenStreetMap</span></span></div>
+        <div class="data-row"><span class="data-label">GIS-lagen</span><span class="data-value"><span class="tag tag-bp">PDOK</span></span></div>
+        <div class="data-row"><span class="data-label">Bodemdata</span><span class="data-value"><span class="tag tag-green">RIVM / BRO</span></span></div>
+        <div class="data-row"><span class="data-label">Wijkdata</span><span class="data-value"><span class="tag tag-bp">CBS 2022</span></span></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ── State ──────────────────────────────────────────
+let map, marker, overlayLayer, baseTileLayer;
+let currentLat, currentLon;
+let activeLayerKey = 'osm';
+
+// ── Tile layer definitions ─────────────────────────
+const TILE_LAYERS = {
+  osm: {
+    base: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attr: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
+    overlay: null
+  },
+  lufo: {
+    base: 'https://service.pdok.nl/hwh/luchtfotorgb/wmts/v1_0/2023_orthoHR/EPSG:3857/{z}/{x}/{y}.jpeg',
+    attr: '© PDOK Luchtfoto 2023',
+    overlay: null
+  },
+  bp: {
+    base: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attr: '© OpenStreetMap, PDOK',
+    overlay: 'https://service.pdok.nl/kadaster/bestemmingsplannen/wms/v1_0?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&FORMAT=image%2Fpng&TRANSPARENT=true&LAYERS=Enkelbestemming&WIDTH=256&HEIGHT=256&CRS=EPSG%3A3857&STYLES=&BBOX={bbox-epsg-3857}'
+  },
+  bodem: {
+    base: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attr: '© OpenStreetMap, RIVM',
+    overlay: 'https://geodata.rivm.nl/geoserver/ows?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&FORMAT=image%2Fpng&TRANSPARENT=true&LAYERS=BRO_BodeminformatiekaartBodemtype&WIDTH=256&HEIGHT=256&CRS=EPSG%3A3857&STYLES=&BBOX={bbox-epsg-3857}'
+  },
+  landgebruik: {
+    base: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attr: '© OpenStreetMap, CBS/PDOK',
+    overlay: 'https://service.pdok.nl/cbs/bestandbodemgebruik/2015/wms/v1_0?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&FORMAT=image%2Fpng&TRANSPARENT=true&LAYERS=bestand_bodemgebruik_2015&WIDTH=256&HEIGHT=256&CRS=EPSG%3A3857&STYLES=&BBOX={bbox-epsg-3857}'
+  },
+  grondwater: {
+    base: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attr: '© OpenStreetMap, PDOK BRO',
+    overlay: 'https://service.pdok.nl/bzk/bro-grondwaterstandonderzoek/wms/v1_0?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&FORMAT=image%2Fpng&TRANSPARENT=true&LAYERS=GrondwaterstandOnderzoek&WIDTH=256&HEIGHT=256&CRS=EPSG%3A3857&STYLES=&BBOX={bbox-epsg-3857}'
+  }
+};
+
+// ── Init / update map ──────────────────────────────
+function initMap(lat, lon) {
+  const container = document.getElementById('map');
+  container.innerHTML = '';
+
+  if (!map) {
+    map = L.map('map', { zoomControl: true, attributionControl: true });
+  }
+  map.setView([lat, lon], 15);
+
+  applyLayer('osm');
+
+  if (marker) map.removeLayer(marker);
+  marker = L.marker([lat, lon]).addTo(map);
+}
+
+function applyLayer(key) {
+  const def = TILE_LAYERS[key];
+  if (baseTileLayer) map.removeLayer(baseTileLayer);
+  if (overlayLayer) { map.removeLayer(overlayLayer); overlayLayer = null; }
+
+  baseTileLayer = L.tileLayer(def.base, { attribution: def.attr }).addTo(map);
+
+  if (def.overlay) {
+    overlayLayer = L.tileLayer(def.overlay, { opacity: 0.65, attribution: def.attr }).addTo(map);
+  }
+  activeLayerKey = key;
+}
+
+function switchLayer(key, btn) {
+  document.querySelectorAll('.layer-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (map) applyLayer(key);
+}
+
+// ── Geocoding via Nominatim ────────────────────────
+async function geocode(address) {
+  const q = encodeURIComponent(address + ', Nederland');
+  const url = `https://nominatim.openstreetmap.org/search?q=${q}&format=json&addressdetails=1&limit=1&accept-language=nl`;
+  const res = await fetch(url, { headers: { 'User-Agent': 'Locatieverkenner/1.0' } });
+  const data = await res.json();
+  return data[0] || null;
+}
+
+// ── PDOK bestemmingsplan ───────────────────────────
+async function fetchBestemmingsplan(lat, lon) {
+  try {
+    const d = 0.0005;
+    const bbox = `${lon - d},${lat - d},${lon + d},${lat + d}`;
+    const url = `https://service.pdok.nl/kadaster/bestemmingsplannen/wfs/v1_0?service=WFS&version=2.0.0&request=GetFeature&typeName=bp:Enkelbestemming&outputFormat=application/json&bbox=${bbox}&srsname=EPSG:4326`;
+    const res = await fetch(url);
+    if (!res.ok) return 'Niet beschikbaar';
+    const data = await res.json();
+    if (data.features && data.features.length > 0) {
+      const p = data.features[0].properties;
+      return p.naam || p.bestemmingshoofdgroep || 'Gevonden';
+    }
+    return 'Geen data op deze locatie';
+  } catch { return 'Niet ophaalbaar'; }
+}
+
+// ── CBS wijkdata ───────────────────────────────────
+async function fetchCBS(lat, lon) {
+  try {
+    const d = 0.005;
+    const bbox = `${lon - d},${lat - d},${lon + d},${lat + d}`;
+    const url = `https://service.pdok.nl/cbs/wijkenbuurten/2022/wfs/v1_0?service=WFS&version=2.0.0&request=GetFeature&typeName=cbs_buurten_2022&outputFormat=application/json&bbox=${bbox}&srsname=EPSG:4326`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return (data.features && data.features.length > 0) ? data.features[0].properties : null;
+  } catch { return null; }
+}
+
+// ── AI analyse ────────────────────────────────────
+async function generateAI(address, gemeente, provincie, bp, lat, lon) {
+  const key = document.getElementById('api-key-input').value.trim();
+  const el = document.getElementById('ai-text');
+
+  if (!key) {
+    el.classList.remove('loading');
+    el.textContent = 'Voer een Anthropic API-sleutel in (zie bovenaan) om een AI-analyse te genereren.';
+    return;
+  }
+
+  el.classList.add('loading');
+  el.textContent = 'Analyse wordt gegenereerd...';
+
+  const prompt = `Je bent een ervaren stedenbouwkundige en landschapsarchitect werkzaam in Nederland. Geef een beknopte locatieanalyse (5-7 zinnen) van het volgende adres vanuit ruimtelijk-stedenbouwkundig perspectief.
+
+Adres: ${address}
+Gemeente: ${gemeente}, ${provincie}
+Bestemmingsplan / bestemming: ${bp}
+Coördinaten: ${lat.toFixed(5)}, ${lon.toFixed(5)}
+
+Behandel: stedenbouwkundige ligging en structuur, relatie tot de omgeving, eventuele kansen of aandachtspunten voor een architectonisch of landschappelijk project. Schrijf professioneel maar toegankelijk in het Nederlands.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-calls': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      el.classList.remove('loading');
+      el.textContent = 'Fout: ' + (err.error?.message || 'Onbekende fout. Controleer je API-sleutel.');
+      return;
+    }
+    const data = await res.json();
+    const text = data.content?.find(b => b.type === 'text')?.text || 'Geen analyse beschikbaar.';
+    el.classList.remove('loading');
+    el.textContent = text;
+  } catch (e) {
+    el.classList.remove('loading');
+    el.textContent = 'Verbindingsfout. Controleer je API-sleutel en internetverbinding.';
+  }
+}
+
+// ── Populate CBS fields ────────────────────────────
+function populateCBS(cbs) {
+  if (!cbs) {
+    ['cbs-inwoners','cbs-dichtheid','cbs-inkomen','cbs-koop'].forEach(id => {
+      document.getElementById(id).textContent = '—';
+    });
+    return;
+  }
+  const fmt = (v, suffix='') => v !== null && v !== undefined && v !== -99999999 ? Math.round(v).toLocaleString('nl') + suffix : '—';
+  document.getElementById('cbs-inwoners').textContent = fmt(cbs.aantal_inwoners);
+  document.getElementById('cbs-dichtheid').textContent = cbs.omgevingsadressendichtheid ? Math.round(cbs.omgevingsadressendichtheid) + '/km²' : '—';
+  document.getElementById('cbs-inkomen').textContent = cbs.gemiddeld_inkomen_per_inwoner ? '€' + Math.round(cbs.gemiddeld_inkomen_per_inwoner).toLocaleString('nl') : '—';
+  document.getElementById('cbs-koop').textContent = cbs.percentage_koopwoningen ? Math.round(cbs.percentage_koopwoningen) + '%' : '—';
+}
+
+// ── Main function ──────────────────────────────────
+async function analyzeLocation() {
+  const address = document.getElementById('address-input').value.trim();
+  if (!address) return;
+
+  const btn = document.getElementById('search-btn');
+  const label = document.getElementById('btn-label');
+  const errEl = document.getElementById('error-msg');
+
+  btn.disabled = true;
+  label.innerHTML = '<span class="spinner"></span> Laden...';
+  errEl.style.display = 'none';
+
+  // Reset AI
+  const aiCard = document.getElementById('ai-card');
+  const aiText = document.getElementById('ai-text');
+  aiCard.style.display = 'none';
+  aiText.classList.add('loading');
+  aiText.textContent = 'Analyse wordt gegenereerd...';
+
+  try {
+    const geo = await geocode(address);
+    if (!geo) {
+      errEl.textContent = 'Adres niet gevonden. Probeer een vollediger adres, bijv. "Herengracht 182, Amsterdam".';
+      errEl.style.display = 'block';
+      btn.disabled = false;
+      label.textContent = 'Verken locatie';
+      return;
+    }
+
+    currentLat = parseFloat(geo.lat);
+    currentLon = parseFloat(geo.lon);
+    const addr = geo.address;
+    const gemeente = addr.city || addr.town || addr.village || addr.municipality || '—';
+    const provincie = addr.state || '—';
+    const displayAddress = geo.display_name.split(',').slice(0, 3).join(',').trim();
+
+    // Update map
+    initMap(currentLat, currentLon);
+    document.getElementById('layer-bar').style.display = 'flex';
+    document.getElementById('sidebar').style.display = 'flex';
+    document.getElementById('sv-btn').style.display = 'flex';
+    aiCard.style.display = 'block';
+
+    // Populate address
+    document.getElementById('res-display-address').textContent = displayAddress;
+    document.getElementById('res-coords').textContent = `${currentLat.toFixed(5)}, ${currentLon.toFixed(5)}`;
+    document.getElementById('res-gemeente').textContent = gemeente;
+    document.getElementById('res-provincie').textContent = provincie;
+    document.getElementById('res-bp').textContent = 'Ophalen...';
+
+    // Street view link
+    document.getElementById('sv-btn').href = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${currentLat},${currentLon}`;
+
+    // Parallel data fetches
+    const [bp, cbs] = await Promise.all([
+      fetchBestemmingsplan(currentLat, currentLon),
+      fetchCBS(currentLat, currentLon)
+    ]);
+
+    document.getElementById('res-bp').textContent = bp;
+    populateCBS(cbs);
+
+    // AI
+    await generateAI(displayAddress, gemeente, provincie, bp, currentLat, currentLon);
+
+  } catch (e) {
+    errEl.textContent = 'Er is een fout opgetreden. Controleer je internetverbinding en probeer opnieuw.';
+    errEl.style.display = 'block';
+  }
+
+  btn.disabled = false;
+  label.textContent = 'Verken locatie';
+}
+
+// ── Enter key ──────────────────────────────────────
+document.getElementById('address-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') analyzeLocation();
+});
+</script>
+</body>
+</html>
