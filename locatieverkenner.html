@@ -404,6 +404,7 @@
         <span style="font-size:12px;color:var(--text-faint);align-self:center;margin-right:2px;">Lagen:</span>
         <button class="layer-btn active" onclick="switchLayer('osm',this)">Basiskaart</button>
         <button class="layer-btn" onclick="switchLayer('lufo',this)">Luchtfoto</button>
+        <button class="layer-btn" onclick="switchLayer('topo',this)">Topografisch</button>
         <button class="layer-btn" onclick="switchLayer('bp',this)">Bestemmingsplan</button>
         <button class="layer-btn" onclick="switchLayer('bodem',this)">Bodemtype</button>
         <button class="layer-btn" onclick="switchLayer('landgebruik',this)">Landgebruik</button>
@@ -484,55 +485,56 @@ let map, marker, overlayLayer, baseTileLayer;
 let currentLat, currentLon;
 let activeLayerKey = 'osm';
 
+// ── Maptiler API key ───────────────────────────────
+const MT = 'QmHIJNBK5uyYXQogMh7t';
+
 // ── Tile layer definitions ─────────────────────────
-// type: 'tile' = gewone XYZ tiles (CORS-vrij)
-//       'wms'  = WMS-dienst via L.tileLayer.wms() (Leaflet handelt bbox af)
 const TILE_LAYERS = {
   osm: {
-    type: 'tile',
-    base: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attr: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
+    base: `https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${MT}`,
+    attr: '© <a href="https://maptiler.com">MapTiler</a> © <a href="https://openstreetmap.org">OpenStreetMap</a>',
     overlay: null
   },
   lufo: {
-    type: 'tile',
-    base: 'https://service.pdok.nl/hwh/luchtfotorgb/wmts/v1_0/2023_orthoHR/EPSG:3857/{z}/{x}/{y}.jpeg',
-    attr: '© PDOK Luchtfoto 2023',
+    base: `https://api.maptiler.com/maps/satellite/{z}/{x}/{y}.jpg?key=${MT}`,
+    attr: '© <a href="https://maptiler.com">MapTiler</a>',
+    overlay: null
+  },
+  topo: {
+    base: `https://api.maptiler.com/maps/topo-v2/{z}/{x}/{y}.png?key=${MT}`,
+    attr: '© <a href="https://maptiler.com">MapTiler</a>',
     overlay: null
   },
   bp: {
-    type: 'tile',
-    base: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attr: '© OpenStreetMap, PDOK',
+    base: `https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${MT}`,
+    attr: '© MapTiler, PDOK Bestemmingsplannen',
     overlayType: 'wms',
     overlayUrl: 'https://service.pdok.nl/kadaster/bestemmingsplannen/wms/v1_0',
     overlayLayers: 'Enkelbestemming'
   },
   bodem: {
-    type: 'tile',
-    base: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attr: '© OpenStreetMap, RIVM/BRO',
+    base: `https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${MT}`,
+    attr: '© MapTiler, RIVM/BRO Bodemkaart',
     overlayType: 'wms',
     overlayUrl: 'https://geodata.rivm.nl/geoserver/ows',
     overlayLayers: 'BRO_BodeminformatiekaartBodemtype'
   },
   landgebruik: {
-    type: 'tile',
-    base: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attr: '© OpenStreetMap, CBS/PDOK',
+    base: `https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${MT}`,
+    attr: '© MapTiler, CBS Bodemgebruik',
     overlayType: 'wms',
     overlayUrl: 'https://service.pdok.nl/cbs/bestandbodemgebruik/2015/wms/v1_0',
     overlayLayers: 'bestand_bodemgebruik_2015'
   },
   grondwater: {
-    type: 'tile',
-    base: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attr: '© OpenStreetMap, PDOK BRO',
+    base: `https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${MT}`,
+    attr: '© MapTiler, PDOK BRO Grondwater',
     overlayType: 'wms',
     overlayUrl: 'https://service.pdok.nl/bzk/bro-grondwaterstandonderzoek/wms/v1_0',
     overlayLayers: 'GrondwaterstandOnderzoek'
   }
 };
+
 
 // ── Init / update map ──────────────────────────────
 function initMap(lat, lon) {
