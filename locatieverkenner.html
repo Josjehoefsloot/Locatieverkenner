@@ -350,6 +350,109 @@
     color: var(--text-faint);
     margin-top: 2px;
   }
+
+  /* ── Export paneel ── */
+  .export-section {
+    margin-top: 2rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1.5rem;
+  }
+  .export-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+  }
+  .export-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .bbox-display {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-faint);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 6px 10px;
+    margin-bottom: 1rem;
+  }
+  .export-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .export-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px;
+  }
+  .export-item-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+  .export-item-sub {
+    font-size: 11px;
+    color: var(--text-faint);
+    margin-bottom: 10px;
+  }
+  .export-btn-row {
+    display: flex;
+    gap: 6px;
+  }
+  .btn-download {
+    flex: 1;
+    font-size: 11px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    padding: 6px 8px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-muted);
+    cursor: pointer;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    transition: all 0.15s;
+  }
+  .btn-download:hover { background: var(--accent-bg); color: var(--accent-text); border-color: #9DB5F5; }
+  .btn-download.btn-qgis { background: var(--green-bg); color: var(--green); border-color: #A8D5B8; }
+  .btn-download.btn-qgis:hover { background: #c8ecd4; }
+  .btn-update-bbox {
+    font-size: 12px;
+    font-family: 'Inter', sans-serif;
+    padding: 5px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-update-bbox:hover { border-color: var(--accent); color: var(--accent); }
+  .copy-toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--text);
+    color: var(--surface);
+    font-size: 13px;
+    padding: 8px 16px;
+    border-radius: 20px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+    z-index: 999;
+  }
+  .copy-toast.show { opacity: 1; }
 </style>
 </head>
 <body>
@@ -420,6 +523,77 @@
         <div class="ai-text loading" id="ai-text">Analyse wordt gegenereerd...</div>
       </div>
 
+
+      <!-- Export paneel -->
+      <div class="export-section" id="export-section" style="display:none">
+        <div class="export-header">
+          <span class="export-title">GIS-export voor QGIS</span>
+          <button class="btn-update-bbox" onclick="updateExport()">↺ Ververs uitsnede</button>
+        </div>
+        <div class="bbox-display" id="bbox-display">Uitsnede: —</div>
+        <div class="export-grid">
+
+          <div class="export-item">
+            <div class="export-item-title">Bestemmingsplan</div>
+            <div class="export-item-sub">Vlakken &amp; bestemmingen · PDOK</div>
+            <div class="export-btn-row">
+              <a class="btn-download" id="dl-bp" href="#" target="_blank">⬇ GeoJSON</a>
+              <button class="btn-download btn-qgis" onclick="copyWFS('https://service.pdok.nl/kadaster/bestemmingsplannen/wfs/v1_0', 'bp:Enkelbestemming')">QGIS WFS</button>
+            </div>
+          </div>
+
+          <div class="export-item">
+            <div class="export-item-title">BAG Panden</div>
+            <div class="export-item-sub">Gebouwvlakken · Kadaster</div>
+            <div class="export-btn-row">
+              <a class="btn-download" id="dl-bag" href="#" target="_blank">⬇ GeoJSON</a>
+              <button class="btn-download btn-qgis" onclick="copyWFS('https://service.pdok.nl/lv/bag/wfs/v2_0', 'bag:pand')">QGIS WFS</button>
+            </div>
+          </div>
+
+          <div class="export-item">
+            <div class="export-item-title">CBS Wijkgrenzen</div>
+            <div class="export-item-sub">Buurt- en wijkgrenzen 2022 · CBS</div>
+            <div class="export-btn-row">
+              <a class="btn-download" id="dl-cbs" href="#" target="_blank">⬇ GeoJSON</a>
+              <button class="btn-download btn-qgis" onclick="copyWFS('https://service.pdok.nl/cbs/wijkenbuurten/2022/wfs/v1_0', 'cbs_buurten_2022')">QGIS WFS</button>
+            </div>
+          </div>
+
+          <div class="export-item">
+            <div class="export-item-title">AHN Hoogte</div>
+            <div class="export-item-sub">Digitaal terreinmodel · RWS</div>
+            <div class="export-btn-row">
+              <a class="btn-download" id="dl-ahn" href="#" target="_blank">⬇ GeoTIFF</a>
+              <button class="btn-download btn-qgis" onclick="copyWFS('https://service.pdok.nl/rws/ahn/wcs/v1_0', 'dtm_05m')">QGIS WCS</button>
+            </div>
+          </div>
+
+          <div class="export-item">
+            <div class="export-item-title">Bodemtype</div>
+            <div class="export-item-sub">BRO Bodemkaart · RIVM</div>
+            <div class="export-btn-row">
+              <a class="btn-download" id="dl-bodem" href="https://www.bodemloket.nl" target="_blank">↗ Bodemloket</a>
+              <button class="btn-download btn-qgis" onclick="copyWFS('https://geodata.rivm.nl/geoserver/ows', 'BRO_BodeminformatiekaartBodemtype')">QGIS WMS</button>
+            </div>
+          </div>
+
+          <div class="export-item">
+            <div class="export-item-title">Grondwater</div>
+            <div class="export-item-sub">Grondwaterstand · PDOK BRO</div>
+            <div class="export-btn-row">
+              <a class="btn-download" id="dl-gw" href="https://www.dinoloket.nl" target="_blank">↗ Dinoloket</a>
+              <button class="btn-download btn-qgis" onclick="copyWFS('https://service.pdok.nl/bzk/bro-grondwaterstandonderzoek/wms/v1_0', 'GrondwaterstandOnderzoek')">QGIS WMS</button>
+            </div>
+          </div>
+
+        </div>
+        <div style="font-size:11px;color:var(--text-faint);margin-top:12px;">
+          GeoJSON openen in QGIS: Laag → Laag toevoegen → Vectorlaag. QGIS WFS/WMS: kopieer de URL en plak in QGIS onder Laag → Laag toevoegen → WFS/WMS-laag.
+        </div>
+      </div>
+
+      <div class="copy-toast" id="copy-toast">URL gekopieerd — plak in QGIS</div>
       <a class="streetview-btn" id="sv-btn" href="#" target="_blank" style="display:none">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
           <circle cx="7" cy="5" r="2.5" stroke="currentColor" stroke-width="1.3"/>
@@ -725,10 +899,13 @@ async function analyzeLocation() {
 
     // Update map
     initMap(currentLat, currentLon);
+    setupExportListener();
+    setTimeout(updateExport, 300);
     document.getElementById('layer-bar').style.display = 'flex';
     document.getElementById('sidebar').style.display = 'flex';
     document.getElementById('sv-btn').style.display = 'flex';
     aiCard.style.display = 'block';
+    document.getElementById('export-section').style.display = 'block';
 
     // Populate address
     document.getElementById('res-display-address').textContent = displayAddress;
@@ -765,6 +942,67 @@ async function analyzeLocation() {
 document.getElementById('address-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') analyzeLocation();
 });
+
+
+// ── Export / QGIS functies ─────────────────────────
+function getBbox() {
+  if (!map) return null;
+  const b = map.getBounds();
+  return {
+    minLon: b.getWest().toFixed(6),
+    minLat: b.getSouth().toFixed(6),
+    maxLon: b.getEast().toFixed(6),
+    maxLat: b.getNorth().toFixed(6)
+  };
+}
+
+function buildWFSUrl(wfsBase, typeName, bbox) {
+  return `${wfsBase}?service=WFS&version=2.0.0&request=GetFeature&typeName=${typeName}&outputFormat=application/json&bbox=${bbox.minLon},${bbox.minLat},${bbox.maxLon},${bbox.maxLat}&srsname=EPSG:4326&count=2000`;
+}
+
+function buildAHNUrl(bbox) {
+  return `https://service.pdok.nl/rws/ahn/wcs/v1_0?SERVICE=WCS&VERSION=2.0.1&REQUEST=GetCoverage&COVERAGEID=dtm_05m&FORMAT=image/tiff&SUBSET=X(${bbox.minLon},${bbox.maxLon})&SUBSET=Y(${bbox.minLat},${bbox.maxLat})`;
+}
+
+function updateExport() {
+  const bbox = getBbox();
+  if (!bbox) return;
+
+  document.getElementById('bbox-display').textContent =
+    `Uitsnede: ${bbox.minLon}, ${bbox.minLat} → ${bbox.maxLon}, ${bbox.maxLat}`;
+
+  document.getElementById('dl-bp').href =
+    buildWFSUrl('https://service.pdok.nl/kadaster/bestemmingsplannen/wfs/v1_0', 'bp:Enkelbestemming', bbox);
+  document.getElementById('dl-bag').href =
+    buildWFSUrl('https://service.pdok.nl/lv/bag/wfs/v2_0', 'bag:pand', bbox);
+  document.getElementById('dl-cbs').href =
+    buildWFSUrl('https://service.pdok.nl/cbs/wijkenbuurten/2022/wfs/v1_0', 'cbs_buurten_2022', bbox);
+  document.getElementById('dl-ahn').href = buildAHNUrl(bbox);
+
+  // Bodemloket en Dinoloket: open op locatiecoördinaten
+  const lat = (parseFloat(bbox.minLat) + parseFloat(bbox.maxLat)) / 2;
+  const lon = (parseFloat(bbox.minLon) + parseFloat(bbox.maxLon)) / 2;
+  document.getElementById('dl-bodem').href =
+    `https://www.bodemloket.nl/kaart#/locatie/${lon}/${lat}/15`;
+  document.getElementById('dl-gw').href =
+    `https://www.dinoloket.nl/kaart#${lat},${lon},15`;
+}
+
+function copyWFS(url, layer) {
+  const text = `${url}?service=WFS&version=2.0.0&request=GetFeature&typeName=${layer}`;
+  navigator.clipboard.writeText(text).then(() => {
+    const toast = document.getElementById('copy-toast');
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2500);
+  });
+}
+
+// Update export elke keer dat kaart beweegt
+function setupExportListener() {
+  if (map) {
+    map.on('moveend', updateExport);
+    map.on('zoomend', updateExport);
+  }
+}
+
 </script>
-</body>
-</html>
