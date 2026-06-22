@@ -485,36 +485,52 @@ let currentLat, currentLon;
 let activeLayerKey = 'osm';
 
 // ── Tile layer definitions ─────────────────────────
+// type: 'tile' = gewone XYZ tiles (CORS-vrij)
+//       'wms'  = WMS-dienst via L.tileLayer.wms() (Leaflet handelt bbox af)
 const TILE_LAYERS = {
   osm: {
+    type: 'tile',
     base: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
     attr: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
     overlay: null
   },
   lufo: {
+    type: 'tile',
     base: 'https://service.pdok.nl/hwh/luchtfotorgb/wmts/v1_0/2023_orthoHR/EPSG:3857/{z}/{x}/{y}.jpeg',
     attr: '© PDOK Luchtfoto 2023',
     overlay: null
   },
   bp: {
+    type: 'tile',
     base: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
     attr: '© OpenStreetMap, PDOK',
-    overlay: 'https://service.pdok.nl/kadaster/bestemmingsplannen/wms/v1_0?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&FORMAT=image%2Fpng&TRANSPARENT=true&LAYERS=Enkelbestemming&WIDTH=256&HEIGHT=256&CRS=EPSG%3A3857&STYLES=&BBOX={bbox-epsg-3857}'
+    overlayType: 'wms',
+    overlayUrl: 'https://service.pdok.nl/kadaster/bestemmingsplannen/wms/v1_0',
+    overlayLayers: 'Enkelbestemming'
   },
   bodem: {
+    type: 'tile',
     base: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attr: '© OpenStreetMap, RIVM',
-    overlay: 'https://geodata.rivm.nl/geoserver/ows?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&FORMAT=image%2Fpng&TRANSPARENT=true&LAYERS=BRO_BodeminformatiekaartBodemtype&WIDTH=256&HEIGHT=256&CRS=EPSG%3A3857&STYLES=&BBOX={bbox-epsg-3857}'
+    attr: '© OpenStreetMap, RIVM/BRO',
+    overlayType: 'wms',
+    overlayUrl: 'https://geodata.rivm.nl/geoserver/ows',
+    overlayLayers: 'BRO_BodeminformatiekaartBodemtype'
   },
   landgebruik: {
+    type: 'tile',
     base: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
     attr: '© OpenStreetMap, CBS/PDOK',
-    overlay: 'https://service.pdok.nl/cbs/bestandbodemgebruik/2015/wms/v1_0?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&FORMAT=image%2Fpng&TRANSPARENT=true&LAYERS=bestand_bodemgebruik_2015&WIDTH=256&HEIGHT=256&CRS=EPSG%3A3857&STYLES=&BBOX={bbox-epsg-3857}'
+    overlayType: 'wms',
+    overlayUrl: 'https://service.pdok.nl/cbs/bestandbodemgebruik/2015/wms/v1_0',
+    overlayLayers: 'bestand_bodemgebruik_2015'
   },
   grondwater: {
+    type: 'tile',
     base: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
     attr: '© OpenStreetMap, PDOK BRO',
-    overlay: 'https://service.pdok.nl/bzk/bro-grondwaterstandonderzoek/wms/v1_0?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&FORMAT=image%2Fpng&TRANSPARENT=true&LAYERS=GrondwaterstandOnderzoek&WIDTH=256&HEIGHT=256&CRS=EPSG%3A3857&STYLES=&BBOX={bbox-epsg-3857}'
+    overlayType: 'wms',
+    overlayUrl: 'https://service.pdok.nl/bzk/bro-grondwaterstandonderzoek/wms/v1_0',
+    overlayLayers: 'GrondwaterstandOnderzoek'
   }
 };
 
@@ -541,8 +557,15 @@ function applyLayer(key) {
 
   baseTileLayer = L.tileLayer(def.base, { attribution: def.attr }).addTo(map);
 
-  if (def.overlay) {
-    overlayLayer = L.tileLayer(def.overlay, { opacity: 0.65, attribution: def.attr }).addTo(map);
+  if (def.overlayType === 'wms') {
+    overlayLayer = L.tileLayer.wms(def.overlayUrl, {
+      layers: def.overlayLayers,
+      format: 'image/png',
+      transparent: true,
+      opacity: 0.7,
+      version: '1.3.0',
+      attribution: def.attr
+    }).addTo(map);
   }
   activeLayerKey = key;
 }
