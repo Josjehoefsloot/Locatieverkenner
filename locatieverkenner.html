@@ -537,8 +537,8 @@
             <div class="export-item-title">Bestemmingsplan</div>
             <div class="export-item-sub">Vlakken &amp; bestemmingen · PDOK</div>
             <div class="export-btn-row">
-              <a class="btn-download" id="dl-bp" href="#" target="_blank">⬇ GeoJSON</a>
-              <button class="btn-download btn-qgis" onclick="copyWFS('https://service.pdok.nl/kadaster/bestemmingsplannen/wfs/v1_0', 'bp:Enkelbestemming')">QGIS WFS</button>
+              <button class="btn-download" onclick="downloadLayer('https://service.pdok.nl/kadaster/bestemmingsplannen/wfs/v1_0','bp:Enkelbestemming')">⬇ GeoJSON</button>
+              <button class="btn-download btn-qgis" onclick="copyWFS('https://service.pdok.nl/kadaster/bestemmingsplannen/wfs/v1_0','bp:Enkelbestemming')">QGIS WFS</button>
             </div>
           </div>
 
@@ -546,8 +546,8 @@
             <div class="export-item-title">BAG Panden</div>
             <div class="export-item-sub">Gebouwvlakken · Kadaster</div>
             <div class="export-btn-row">
-              <a class="btn-download" id="dl-bag" href="#" target="_blank">⬇ GeoJSON</a>
-              <button class="btn-download btn-qgis" onclick="copyWFS('https://service.pdok.nl/lv/bag/wfs/v2_0', 'bag:pand')">QGIS WFS</button>
+              <button class="btn-download" onclick="downloadLayer('https://service.pdok.nl/lv/bag/wfs/v2_0','bag:pand')">⬇ GeoJSON</button>
+              <button class="btn-download btn-qgis" onclick="copyWFS('https://service.pdok.nl/lv/bag/wfs/v2_0','bag:pand')">QGIS WFS</button>
             </div>
           </div>
 
@@ -555,8 +555,8 @@
             <div class="export-item-title">CBS Wijkgrenzen</div>
             <div class="export-item-sub">Buurt- en wijkgrenzen 2022 · CBS</div>
             <div class="export-btn-row">
-              <a class="btn-download" id="dl-cbs" href="#" target="_blank">⬇ GeoJSON</a>
-              <button class="btn-download btn-qgis" onclick="copyWFS('https://service.pdok.nl/cbs/wijkenbuurten/2022/wfs/v1_0', 'cbs_buurten_2022')">QGIS WFS</button>
+              <button class="btn-download" onclick="downloadLayer('https://service.pdok.nl/cbs/wijkenbuurten/2022/wfs/v1_0','cbs_buurten_2022')">⬇ GeoJSON</button>
+              <button class="btn-download btn-qgis" onclick="copyWFS('https://service.pdok.nl/cbs/wijkenbuurten/2022/wfs/v1_0','cbs_buurten_2022')">QGIS WFS</button>
             </div>
           </div>
 
@@ -564,8 +564,8 @@
             <div class="export-item-title">AHN Hoogte</div>
             <div class="export-item-sub">Digitaal terreinmodel · RWS</div>
             <div class="export-btn-row">
-              <a class="btn-download" id="dl-ahn" href="#" target="_blank">⬇ GeoTIFF</a>
-              <button class="btn-download btn-qgis" onclick="copyWFS('https://service.pdok.nl/rws/ahn/wcs/v1_0', 'dtm_05m')">QGIS WCS</button>
+              <button class="btn-download" onclick="downloadAHN()">⬇ GeoTIFF</button>
+              <button class="btn-download btn-qgis" onclick="copyWFS('https://service.pdok.nl/rws/ahn/wcs/v1_0','dtm_05m')">QGIS WCS</button>
             </div>
           </div>
 
@@ -573,8 +573,8 @@
             <div class="export-item-title">Bodemtype</div>
             <div class="export-item-sub">BRO Bodemkaart · RIVM</div>
             <div class="export-btn-row">
-              <a class="btn-download" id="dl-bodem" href="https://www.bodemloket.nl" target="_blank">↗ Bodemloket</a>
-              <button class="btn-download btn-qgis" onclick="copyWFS('https://geodata.rivm.nl/geoserver/ows', 'BRO_BodeminformatiekaartBodemtype')">QGIS WMS</button>
+              <button class="btn-download" onclick="openBodemloket()">↗ Bodemloket</button>
+              <button class="btn-download btn-qgis" onclick="copyWFS('https://geodata.rivm.nl/geoserver/ows','BRO_BodeminformatiekaartBodemtype')">QGIS WMS</button>
             </div>
           </div>
 
@@ -582,8 +582,8 @@
             <div class="export-item-title">Grondwater</div>
             <div class="export-item-sub">Grondwaterstand · PDOK BRO</div>
             <div class="export-btn-row">
-              <a class="btn-download" id="dl-gw" href="https://www.dinoloket.nl" target="_blank">↗ Dinoloket</a>
-              <button class="btn-download btn-qgis" onclick="copyWFS('https://service.pdok.nl/bzk/bro-grondwaterstandonderzoek/wms/v1_0', 'GrondwaterstandOnderzoek')">QGIS WMS</button>
+              <button class="btn-download" onclick="openDinoloket()">↗ Dinoloket</button>
+              <button class="btn-download btn-qgis" onclick="copyWFS('https://service.pdok.nl/bzk/bro-grondwaterstandonderzoek/wms/v1_0','GrondwaterstandOnderzoek')">QGIS WMS</button>
             </div>
           </div>
 
@@ -967,25 +967,31 @@ function buildAHNUrl(bbox) {
 function updateExport() {
   const bbox = getBbox();
   if (!bbox) return;
-
   document.getElementById('bbox-display').textContent =
     `Uitsnede: ${bbox.minLon}, ${bbox.minLat} → ${bbox.maxLon}, ${bbox.maxLat}`;
+}
 
-  document.getElementById('dl-bp').href =
-    buildWFSUrl('https://service.pdok.nl/kadaster/bestemmingsplannen/wfs/v1_0', 'bp:Enkelbestemming', bbox);
-  document.getElementById('dl-bag').href =
-    buildWFSUrl('https://service.pdok.nl/lv/bag/wfs/v2_0', 'bag:pand', bbox);
-  document.getElementById('dl-cbs').href =
-    buildWFSUrl('https://service.pdok.nl/cbs/wijkenbuurten/2022/wfs/v1_0', 'cbs_buurten_2022', bbox);
-  document.getElementById('dl-ahn').href = buildAHNUrl(bbox);
+function downloadLayer(wfsBase, typeName) {
+  const bbox = getBbox();
+  if (!bbox) return;
+  const url = buildWFSUrl(wfsBase, typeName, bbox);
+  window.open(url, '_blank');
+}
 
-  // Bodemloket en Dinoloket: open op locatiecoördinaten
-  const lat = (parseFloat(bbox.minLat) + parseFloat(bbox.maxLat)) / 2;
-  const lon = (parseFloat(bbox.minLon) + parseFloat(bbox.maxLon)) / 2;
-  document.getElementById('dl-bodem').href =
-    `https://www.bodemloket.nl/kaart#/locatie/${lon}/${lat}/15`;
-  document.getElementById('dl-gw').href =
-    `https://www.dinoloket.nl/kaart#${lat},${lon},15`;
+function downloadAHN() {
+  const bbox = getBbox();
+  if (!bbox) return;
+  window.open(buildAHNUrl(bbox), '_blank');
+}
+
+function openBodemloket() {
+  if (!currentLat || !currentLon) return;
+  window.open(`https://www.bodemloket.nl/kaart#/locatie/${currentLon}/${currentLat}/15`, '_blank');
+}
+
+function openDinoloket() {
+  if (!currentLat || !currentLon) return;
+  window.open(`https://www.dinoloket.nl/kaart#${currentLat},${currentLon},15`, '_blank');
 }
 
 function copyWFS(url, layer) {
